@@ -22,14 +22,6 @@ const deniedTypes = [
 ];
 
 module.exports = () => ({
-  'users-permissions': {
-    config: {
-      jwtManagement: 'refresh',
-      sessions: {
-        httpOnly: true,
-      },
-    },
-  },
   upload: {
     config: {
       security: {
