@@ -24,7 +24,36 @@ module.exports = {
       }
     }
 
-    // ── 2. Grant public access to the registration endpoint ───────────────
+    // ── 2. Grant essential permissions to each custom role ─────────────────
+    const essentialActions = [
+      'plugin::users-permissions.user.me',
+      'plugin::users-permissions.auth.callback',
+      'api::auth-me.auth-me.me',
+    ];
+
+    // Grant to custom roles + the default "authenticated" role
+    const allRoleTypes = [...CUSTOM_ROLES.map(r => r.type), 'authenticated'];
+
+    for (const roleType of allRoleTypes) {
+      const role = await strapi.db.query('plugin::users-permissions.role').findOne({
+        where: { type: roleType },
+      });
+      if (!role) continue;
+
+      for (const action of essentialActions) {
+        const exists = await strapi.db.query('plugin::users-permissions.permission').findOne({
+          where: { action, role: role.id },
+        });
+        if (!exists) {
+          await strapi.db.query('plugin::users-permissions.permission').create({
+            data: { action, role: role.id },
+          });
+          strapi.log.info(`[bootstrap] Granted "${action}" to role "${roleType}"`);
+        }
+      }
+    }
+
+    // ── 3. Grant public access to the registration endpoint ───────────────
     const publicRole = await strapi.db.query('plugin::users-permissions.role').findOne({
       where: { type: 'public' },
     });

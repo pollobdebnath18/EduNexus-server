@@ -15,6 +15,10 @@
       "type": "string",
       "required": true
     },
+    "shortDescription": {
+      "type": "string",
+      "required": true
+    },
     "description": {
       "type": "text",
       "required": true
@@ -22,24 +26,17 @@
     "thumbnail": {
       "type": "string"
     },
-    "isPublished": {
-      "type": "boolean",
-      "default": false
+    "category": {
+      "type": "string"
+    },
+    "level": {
+      "type": "string"
     },
     "instructor": {
       "type": "relation",
-      "relation": "oneToOne",
+      "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
-      "conditions": {
-        "visible": {
-          "==": [
-            {
-              "var": ""
-            },
-            ""
-          ]
-        }
-      }
+      "inversedBy": "courses"
     }
   }
 }
