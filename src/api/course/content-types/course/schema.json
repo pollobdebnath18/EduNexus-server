@@ -34,9 +34,8 @@
     },
     "instructor": {
       "type": "relation",
-      "relation": "manyToOne",
-      "target": "plugin::users-permissions.user",
-      "inversedBy": "courses"
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
     }
   }
 }

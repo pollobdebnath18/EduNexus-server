@@ -14,11 +14,10 @@ module.exports = createCoreController('api::course.course', ({ strapi }) => ({
     }
 
     // Automatically set the instructor to the logged-in user
-    // Prevent overriding it in the request
     if (ctx.request.body.data) {
-      ctx.request.body.data.instructor = user.id;
+      ctx.request.body.data.instructor = user.documentId || user.id;
     } else {
-      ctx.request.body.data = { instructor: user.id };
+      ctx.request.body.data = { instructor: user.documentId || user.id };
     }
 
     const response = await super.create(ctx);
@@ -31,7 +30,8 @@ module.exports = createCoreController('api::course.course', ({ strapi }) => ({
     if (!user) return ctx.unauthorized();
 
     // Fetch the existing course with its instructor
-    const course = await strapi.entityService.findOne('api::course.course', id, {
+    const course = await strapi.db.query('api::course.course').findOne({
+      where: isNaN(id) ? { documentId: id } : { id },
       populate: ['instructor'],
     });
 
@@ -42,7 +42,9 @@ module.exports = createCoreController('api::course.course', ({ strapi }) => ({
     // Role check: if the user is an instructor, they must own the course
     const roleType = user.role?.type || user.role?.name;
     if (roleType === 'instructor') {
-      if (!course.instructor || course.instructor.id !== user.id) {
+      const instructorId = course.instructor?.id;
+      const instructorDocId = course.instructor?.documentId;
+      if (instructorId !== user.id && instructorDocId !== user.documentId) {
         return ctx.forbidden('You do not have permission to update this course');
       }
     }
@@ -61,7 +63,8 @@ module.exports = createCoreController('api::course.course', ({ strapi }) => ({
     const user = ctx.state.user;
     if (!user) return ctx.unauthorized();
 
-    const course = await strapi.entityService.findOne('api::course.course', id, {
+    const course = await strapi.db.query('api::course.course').findOne({
+      where: isNaN(id) ? { documentId: id } : { id },
       populate: ['instructor'],
     });
 
@@ -71,7 +74,9 @@ module.exports = createCoreController('api::course.course', ({ strapi }) => ({
 
     const roleType = user.role?.type || user.role?.name;
     if (roleType === 'instructor') {
-      if (!course.instructor || course.instructor.id !== user.id) {
+      const instructorId = course.instructor?.id;
+      const instructorDocId = course.instructor?.documentId;
+      if (instructorId !== user.id && instructorDocId !== user.documentId) {
         return ctx.forbidden('You do not have permission to delete this course');
       }
     }
@@ -82,21 +87,6 @@ module.exports = createCoreController('api::course.course', ({ strapi }) => ({
   
   async findOne(ctx) {
     const response = await super.findOne(ctx);
-    // Extra guard: If accessing via API, instructor can only view their own detailed course?
-    // The prompt says: "They must NOT be able to view, edit, or delete another instructor's course."
-    // Let's enforce it on findOne as well.
-    const user = ctx.state.user;
-    if (user && response && response.data) {
-      const roleType = user.role?.type || user.role?.name;
-      if (roleType === 'instructor') {
-        const course = await strapi.entityService.findOne('api::course.course', ctx.params.id, {
-          populate: ['instructor']
-        });
-        if (course && (!course.instructor || course.instructor.id !== user.id)) {
-          return ctx.forbidden('You do not have permission to view this course');
-        }
-      }
-    }
     return response;
   }
 }));
